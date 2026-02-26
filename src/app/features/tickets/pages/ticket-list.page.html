@@ -1,0 +1,175 @@
+<div class="page">
+
+  <header class="page-header">
+    <h1>Tickets de soporte</h1>
+  </header>
+
+  <div class="filters" [formGroup]="filterForm">
+    <input
+      class="filters__search"
+      type="text"
+      placeholder="Buscar por título o descripción..."
+      formControlName="search"
+    />
+    <div class="filters__selects">
+      <select class="select" formControlName="status">
+        <option value="">Todos los estados</option>
+        <option value="OPEN">Abierto</option>
+        <option value="IN_PROGRESS">En progreso</option>
+        <option value="DONE">Resuelto</option>
+      </select>
+      <select class="select" formControlName="priority">
+        <option value="">Todas las prioridades</option>
+        <option value="HIGH">Alta</option>
+        <option value="MEDIUM">Media</option>
+        <option value="LOW">Baja</option>
+      </select>
+      <select class="select" formControlName="category">
+        <option value="">Todas las categorías</option>
+        <option value="TECH">Técnico</option>
+        <option value="BILLING">Facturación</option>
+        <option value="OTHER">Otro</option>
+      </select>
+      <select class="select" formControlName="assignee">
+        <option value="">Todos los responsables</option>
+        @for (name of assignees; track name) {
+          <option [value]="name">{{ name }}</option>
+        }
+      </select>
+      <select class="select" formControlName="sort">
+        <option value="updatedAt">Ordenar: Última actualización</option>
+        <option value="priority">Ordenar: Prioridad</option>
+      </select>
+    </div>
+  </div>
+
+  @if (state$ | async; as state) {
+
+    @if (state.status === 'error') {
+      <div class="state-error">
+        <svg class="state-error__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <p>No se pudieron cargar los tickets.</p>
+        <button class="btn-retry" (click)="retry()">Reintentar</button>
+      </div>
+    }
+
+    @if (state.status === 'loading') {
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Título</th>
+              <th>Estado</th>
+              <th>Prioridad</th>
+              <th>Categoría</th>
+              <th>Responsable</th>
+              <th>Creado</th>
+              <th>Actualizado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of [1,2,3,4,5,6,7,8]; track row) {
+              <tr class="table__row">
+                <td><span class="skeleton skeleton--sm"></span></td>
+                <td><span class="skeleton skeleton--lg"></span></td>
+                <td><span class="skeleton skeleton--md"></span></td>
+                <td><span class="skeleton skeleton--md"></span></td>
+                <td><span class="skeleton skeleton--md"></span></td>
+                <td><span class="skeleton skeleton--md"></span></td>
+                <td><span class="skeleton skeleton--sm"></span></td>
+                <td><span class="skeleton skeleton--sm"></span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+
+    @if (state.status === 'success') {
+      <div class="table-wrapper">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Título</th>
+              <th>Estado</th>
+              <th>Prioridad</th>
+              <th>Categoría</th>
+              <th>Responsable</th>
+              <th>Creado</th>
+              <th>Actualizado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (ticket of state.data.items; track ticket.id) {
+              <tr class="table__row">
+                <td class="table__id">{{ ticket.id }}</td>
+                <td class="table__title">
+                  <span class="ticket-title">{{ ticket.title }}</span>
+                </td>
+                <td>
+                  <span
+                    class="badge"
+                    [ngClass]="{
+                      'badge--open': ticket.status === 'OPEN',
+                      'badge--progress': ticket.status === 'IN_PROGRESS',
+                      'badge--done': ticket.status === 'DONE'
+                    }"
+                  >{{ statusLabel(ticket.status) }}</span>
+                </td>
+                <td>
+                  <span
+                    class="priority"
+                    [ngClass]="{
+                      'priority--high': ticket.priority === 'HIGH',
+                      'priority--medium': ticket.priority === 'MEDIUM',
+                      'priority--low': ticket.priority === 'LOW'
+                    }"
+                  >
+                    <span class="priority__dot"></span>
+                    {{ priorityLabel(ticket.priority) }}
+                  </span>
+                </td>
+                <td class="table__category">{{ categoryLabel(ticket.category) }}</td>
+                <td class="table__assignee">{{ ticket.assignee }}</td>
+                <td class="table__date">{{ ticket.createdAt | date: 'dd/MM/yyyy' }}</td>
+                <td class="table__date">{{ ticket.updatedAt | date: 'dd/MM/yyyy' }}</td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="table__empty">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  <span>No se encontraron tickets con los filtros aplicados.</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (state.data.total > pageSize) {
+        <div class="pagination">
+          <span class="pagination__info">{{ state.data.total }} resultados</span>
+          <div class="pagination__pages">
+            @for (p of pages(state.data.total); track p) {
+              <button
+                class="pagination__btn"
+                [class.pagination__btn--active]="p === page()"
+                (click)="page.set(p)"
+              >{{ p }}</button>
+            }
+          </div>
+        </div>
+      }
+    }
+
+  }
+
+</div>

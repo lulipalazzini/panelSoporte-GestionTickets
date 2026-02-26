@@ -1,0 +1,1 @@
+export { TicketListPageComponent } from './ticket-list.page';
