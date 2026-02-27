@@ -7,7 +7,7 @@ import {
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AsyncPipe, DatePipe, NgClass } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { combineLatest, Observable, Subject } from 'rxjs';
 import {
   catchError,
@@ -16,6 +16,7 @@ import {
   finalize,
   map,
   of,
+  skip,
   startWith,
   switchMap,
 } from 'rxjs';
@@ -50,6 +51,8 @@ const ASSIGNEES = [
 })
 export class TicketsListPage {
   private readonly ticketService = inject(TicketService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   readonly pageSize = 10;
   readonly assignees = ASSIGNEES;
@@ -73,9 +76,39 @@ export class TicketsListPage {
   readonly state$: Observable<ViewState>;
 
   constructor() {
-    this.filterForm.valueChanges
-      .pipe(takeUntilDestroyed())
-      .subscribe(() => this.page.set(1));
+    const qp = this.route.snapshot.queryParams;
+    this.filterForm.patchValue(
+      {
+        search: qp['search'] ?? '',
+        status: qp['status'] ?? '',
+        priority: qp['priority'] ?? '',
+        category: qp['category'] ?? '',
+        assignee: qp['assignee'] ?? '',
+        sort: qp['sort'] ?? 'updatedAt',
+      },
+      { emitEvent: false },
+    );
+    if (qp['page']) this.page.set(Number(qp['page']));
+
+    this.filterForm.valueChanges.pipe(takeUntilDestroyed()).subscribe((v) => {
+      this.page.set(1);
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: { ...v, page: 1 },
+        replaceUrl: true,
+      });
+    });
+
+    toObservable(this.page)
+      .pipe(skip(1), takeUntilDestroyed())
+      .subscribe((page) => {
+        this.router.navigate([], {
+          relativeTo: this.route,
+          queryParams: { page },
+          queryParamsHandling: 'merge',
+          replaceUrl: true,
+        });
+      });
 
     this.state$ = combineLatest([
       this.filterForm.valueChanges.pipe(
