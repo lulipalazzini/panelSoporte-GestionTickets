@@ -7,14 +7,24 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { NgClass } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { EMPTY, Observable } from 'rxjs';
 import { catchError, finalize, map, of, switchMap } from 'rxjs';
 
 import { TicketService } from '../data-access/ticket.service';
-import { Ticket, TicketCategory, TicketPriority, TicketStatus } from '../../../shared/models';
+import {
+  Ticket,
+  TicketCategory,
+  TicketPriority,
+  TicketStatus,
+} from '../../../shared/models';
 import { PendingChanges } from '../../../core/guards/pending-changes.guard';
 
 interface TicketFormGroup {
