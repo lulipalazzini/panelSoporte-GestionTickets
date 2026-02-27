@@ -1,8 +1,14 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { delay } from 'rxjs/operators';
 
-import { Ticket, TicketCategory, TicketPriority, TicketStatus } from '../../../shared/models';
+import {
+  Comment,
+  Ticket,
+  TicketCategory,
+  TicketPriority,
+  TicketStatus,
+} from '../../../shared/models';
 
 export interface GetTicketsParams {
   search?: string;
@@ -26,7 +32,7 @@ const PRIORITY_ORDER: Record<TicketPriority, number> = {
   HIGH: 2,
 };
 
-const STATUSES: TicketStatus[] = ['OPEN', 'IN_PROGRESS', 'DONE'];
+const STATUSES: TicketStatus[]   = ['OPEN', 'IN_PROGRESS', 'DONE'];
 const PRIORITIES: TicketPriority[] = ['HIGH', 'MEDIUM', 'LOW', 'HIGH', 'MEDIUM'];
 const CATEGORIES: TicketCategory[] = ['TECH', 'BILLING', 'OTHER', 'TECH', 'BILLING'];
 const ASSIGNEES = ['María López', 'Carlos Ruiz', 'Ana Torres', 'Diego Méndez', 'Lucía Fernández'];
@@ -73,17 +79,17 @@ const DESCRIPTIONS = [
   'Webhook configured for ticket.updated events never delivers a payload to the registered endpoint.',
   'The CSV import wizard shows "Invalid format" for a file that matches the documented schema exactly.',
   'Tag filters selected in the sidebar are reset to default every time the browser tab is refreshed.',
-  'Changing a user\'s role from Viewer to Editor does not grant edit permissions until the user logs out and back in.',
+  "Changing a user's role from Viewer to Editor does not grant edit permissions until the user logs out and back in.",
   'The priority selector in the ticket creation form shows only LOW and MEDIUM, the HIGH option is missing from the list.',
 ];
 
 function isoDate(daysAgo: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - daysAgo);
-  return date.toISOString();
+  const d = new Date();
+  d.setDate(d.getDate() - daysAgo);
+  return d.toISOString();
 }
 
-const MOCK_TICKETS: Ticket[] = Array.from({ length: 50 }, (_, i): Ticket => ({
+let mockTickets: Ticket[] = Array.from({ length: 50 }, (_, i): Ticket => ({
   id: i + 1,
   title: TITLES[i % TITLES.length],
   description: DESCRIPTIONS[i % DESCRIPTIONS.length],
@@ -95,25 +101,70 @@ const MOCK_TICKETS: Ticket[] = Array.from({ length: 50 }, (_, i): Ticket => ({
   updatedAt: isoDate(Math.max(0, 25 - Math.floor(i / 2))),
 }));
 
+let mockComments: Comment[] = [
+  { id: 1, ticketId: 1, author: 'Carlos Ruiz',    message: 'Reproduced on iPhone 15 with iOS 17.2. The error occurs after the splash screen.',                          createdAt: isoDate(10) },
+  { id: 2, ticketId: 1, author: 'María López',    message: 'Confirmed. Looks like the OAuth redirect is failing on mobile WebViews. Escalating to backend.',            createdAt: isoDate(8)  },
+  { id: 3, ticketId: 1, author: 'Ana Torres',     message: 'Backend team confirmed a session cookie issue on Safari. Fix in progress.',                                  createdAt: isoDate(5)  },
+  { id: 4, ticketId: 2, author: 'Diego Méndez',   message: 'The discount is applied after tax. Accounting confirmed this is incorrect.',                                 createdAt: isoDate(12) },
+  { id: 5, ticketId: 2, author: 'Lucía Fernández',message: 'Fix deployed to staging. Awaiting QA sign-off before production release.',                                  createdAt: isoDate(3)  },
+  { id: 6, ticketId: 3, author: 'Carlos Ruiz',    message: 'Checked mail server logs. Emails are queued but the SMTP relay is rejecting them silently.',                 createdAt: isoDate(7)  },
+  { id: 7, ticketId: 4, author: 'Ana Torres',     message: 'Memory leak in the file upload handler. The blob reader is not released after processing.',                  createdAt: isoDate(4)  },
+  { id: 8, ticketId: 5, author: 'María López',    message: 'Payment gateway team confirmed a fraud-detection false positive. Whitelist request submitted.',              createdAt: isoDate(6)  },
+];
+
+let nextCommentId = mockComments.length + 1;
+
 @Injectable({ providedIn: 'root' })
 export class TicketService {
+
   getTickets(params: GetTicketsParams): Observable<GetTicketsResult> {
-    const filtered = this.applyFilters(MOCK_TICKETS, params);
-    const sorted = this.applySort(filtered, params.sort);
-    const total = sorted.length;
-    const items = this.applyPagination(sorted, params.page ?? 1, params.pageSize ?? 10);
+    const filtered = this.applyFilters(mockTickets, params);
+    const sorted   = this.applySort(filtered, params.sort);
+    const total    = sorted.length;
+    const items    = this.applyPagination(sorted, params.page ?? 1, params.pageSize ?? 10);
     return of({ items, total }).pipe(delay(500));
+  }
+
+  getTicketById(id: number): Observable<Ticket> {
+    const ticket = mockTickets.find((t) => t.id === id);
+    if (!ticket) return throwError(() => new Error(`Ticket ${id} not found`));
+    return of({ ...ticket }).pipe(delay(400));
+  }
+
+  updateTicket(id: number, changes: Partial<Pick<Ticket, 'status' | 'priority'>>): Observable<Ticket> {
+    const idx = mockTickets.findIndex((t) => t.id === id);
+    if (idx === -1) return throwError(() => new Error(`Ticket ${id} not found`));
+    const updated: Ticket = { ...mockTickets[idx], ...changes, updatedAt: new Date().toISOString() };
+    mockTickets = [...mockTickets.slice(0, idx), updated, ...mockTickets.slice(idx + 1)];
+    return of({ ...updated }).pipe(delay(600));
+  }
+
+  getCommentsByTicketId(ticketId: number): Observable<Comment[]> {
+    const result = mockComments
+      .filter((c) => c.ticketId === ticketId)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return of(result).pipe(delay(400));
+  }
+
+  addComment(ticketId: number, message: string): Observable<Comment> {
+    const comment: Comment = {
+      id: nextCommentId++,
+      ticketId,
+      author: 'Tú',
+      message,
+      createdAt: new Date().toISOString(),
+    };
+    mockComments = [...mockComments, comment];
+    return of({ ...comment }).pipe(delay(500));
   }
 
   private applyFilters(tickets: Ticket[], params: GetTicketsParams): Ticket[] {
     return tickets.filter((ticket) => {
       if (params.search) {
         const q = params.search.toLowerCase();
-        const matchesTitle = ticket.title.toLowerCase().includes(q);
-        const matchesDescription = ticket.description.toLowerCase().includes(q);
-        if (!matchesTitle && !matchesDescription) return false;
+        if (!ticket.title.toLowerCase().includes(q) && !ticket.description.toLowerCase().includes(q)) return false;
       }
-      if (params.status && ticket.status !== params.status) return false;
+      if (params.status   && ticket.status   !== params.status)   return false;
       if (params.priority && ticket.priority !== params.priority) return false;
       if (params.category && ticket.category !== params.category) return false;
       if (params.assignee && ticket.assignee !== params.assignee) return false;
@@ -126,9 +177,7 @@ export class TicketService {
     if (sort === 'priority') {
       return copy.sort((a, b) => PRIORITY_ORDER[b.priority] - PRIORITY_ORDER[a.priority]);
     }
-    return copy.sort(
-      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    );
+    return copy.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }
 
   private applyPagination(tickets: Ticket[], page: number, pageSize: number): Ticket[] {

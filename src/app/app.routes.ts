@@ -3,8 +3,17 @@ import { Routes } from '@angular/router';
 export const routes: Routes = [
   {
     path: 'tickets',
-    loadChildren: () =>
-      import('./features/tickets/tickets.routes').then((m) => m.ticketRoutes),
+    loadComponent: () =>
+      import('./features/tickets/pages/tickets-list.page').then(
+        (m) => m.TicketsListPage,
+      ),
+  },
+  {
+    path: 'tickets/:id',
+    loadComponent: () =>
+      import('./features/tickets/pages/ticket-detail.page').then(
+        (m) => m.TicketDetailPage,
+      ),
   },
   {
     path: '',

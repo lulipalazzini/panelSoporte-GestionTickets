@@ -1,9 +1,24 @@
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  signal,
+} from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { AsyncPipe, DatePipe, NgClass } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { combineLatest, Observable, Subject } from 'rxjs';
-import { catchError, debounceTime, map, of, startWith, switchMap, tap } from 'rxjs';
+import {
+  catchError,
+  debounceTime,
+  distinctUntilChanged,
+  finalize,
+  map,
+  of,
+  startWith,
+  switchMap,
+} from 'rxjs';
 
 import { TicketService, GetTicketsResult } from '../data-access/ticket.service';
 import { TicketCategory, TicketPriority, TicketStatus } from '../../../shared/models';
@@ -13,25 +28,32 @@ type ViewState =
   | { status: 'error' }
   | { status: 'success'; data: GetTicketsResult };
 
-const ASSIGNEES = ['María López', 'Carlos Ruiz', 'Ana Torres', 'Diego Méndez', 'Lucía Fernández'];
+const ASSIGNEES = [
+  'María López',
+  'Carlos Ruiz',
+  'Ana Torres',
+  'Diego Méndez',
+  'Lucía Fernández',
+];
 
 @Component({
-  selector: 'app-ticket-list-page',
+  selector: 'app-tickets-list',
   standalone: true,
-  imports: [ReactiveFormsModule, AsyncPipe, DatePipe, NgClass],
-  templateUrl: './ticket-list.page.html',
-  styleUrl: './ticket-list.page.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [ReactiveFormsModule, AsyncPipe, DatePipe, NgClass, RouterLink],
+  templateUrl: './tickets-list.page.html',
+  styleUrl: './tickets-list.page.scss',
 })
-export class TicketListPageComponent {
-  private ticketService = inject(TicketService);
-  private destroyRef = inject(DestroyRef);
+export class TicketsListPage {
+  private readonly ticketService = inject(TicketService);
 
   readonly pageSize = 10;
   readonly assignees = ASSIGNEES;
 
-  page = signal(1);
+  readonly page = signal(1);
+  readonly loading = signal(false);
 
-  filterForm = new FormGroup({
+  readonly filterForm = new FormGroup({
     search: new FormControl('', { nonNullable: true }),
     status: new FormControl<TicketStatus | ''>('', { nonNullable: true }),
     priority: new FormControl<TicketPriority | ''>('', { nonNullable: true }),
@@ -40,42 +62,49 @@ export class TicketListPageComponent {
     sort: new FormControl<'updatedAt' | 'priority'>('updatedAt', { nonNullable: true }),
   });
 
-  private retrySubject = new Subject<void>();
+  private readonly retry$ = new Subject<void>();
 
   readonly state$: Observable<ViewState>;
 
   constructor() {
     this.filterForm.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntilDestroyed())
       .subscribe(() => this.page.set(1));
 
     this.state$ = combineLatest([
-      this.filterForm.valueChanges.pipe(startWith(this.filterForm.getRawValue())),
-      toObservable(this.page),
-      this.retrySubject.pipe(startWith(null)),
-    ]).pipe(
-      debounceTime(300),
-      switchMap(([filters, page]) =>
-        this.ticketService.getTickets({
-          search: filters.search || undefined,
-          status: (filters.status || undefined) as TicketStatus | undefined,
-          priority: (filters.priority || undefined) as TicketPriority | undefined,
-          category: (filters.category || undefined) as TicketCategory | undefined,
-          assignee: filters.assignee || undefined,
-          sort: filters.sort,
-          page,
-          pageSize: this.pageSize,
-        }).pipe(
-          map((data): ViewState => ({ status: 'success', data })),
-          catchError((): Observable<ViewState> => of({ status: 'error' })),
-          startWith<ViewState>({ status: 'loading' }),
-        ),
+      this.filterForm.valueChanges.pipe(
+        startWith(this.filterForm.getRawValue()),
+        debounceTime(400),
+        distinctUntilChanged((a, b) => JSON.stringify(a) === JSON.stringify(b)),
       ),
+      toObservable(this.page),
+      this.retry$.pipe(startWith(null)),
+    ]).pipe(
+      switchMap(([filters, page]) => {
+        this.loading.set(true);
+        return this.ticketService
+          .getTickets({
+            search: filters.search || undefined,
+            status: (filters.status || undefined) as TicketStatus | undefined,
+            priority: (filters.priority || undefined) as TicketPriority | undefined,
+            category: (filters.category || undefined) as TicketCategory | undefined,
+            assignee: filters.assignee || undefined,
+            sort: filters.sort,
+            page,
+            pageSize: this.pageSize,
+          })
+          .pipe(
+            map((data): ViewState => ({ status: 'success', data })),
+            catchError((): Observable<ViewState> => of({ status: 'error' })),
+            startWith<ViewState>({ status: 'loading' }),
+            finalize(() => this.loading.set(false)),
+          );
+      }),
     );
   }
 
   retry(): void {
-    this.retrySubject.next();
+    this.retry$.next();
   }
 
   pages(total: number): number[] {

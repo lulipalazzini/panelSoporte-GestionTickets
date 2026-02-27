@@ -1,1 +1,2 @@
-export { TicketListPageComponent } from './ticket-list.page';
+export { TicketsListPage } from './tickets-list.page';
+export { TicketDetailPage } from './ticket-detail.page';
