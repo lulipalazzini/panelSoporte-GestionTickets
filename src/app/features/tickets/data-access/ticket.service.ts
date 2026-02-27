@@ -211,9 +211,26 @@ export class TicketService {
     return of({ ...ticket }).pipe(delay(400));
   }
 
+  createTicket(
+    data: Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>,
+  ): Observable<Ticket> {
+    const newId =
+      mockTickets.length > 0
+        ? Math.max(...mockTickets.map((t) => t.id)) + 1
+        : 1;
+    const newTicket: Ticket = {
+      ...data,
+      id: newId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    mockTickets = [...mockTickets, newTicket];
+    return of({ ...newTicket }).pipe(delay(500));
+  }
+
   updateTicket(
     id: number,
-    changes: Partial<Pick<Ticket, 'status' | 'priority'>>,
+    changes: Partial<Omit<Ticket, 'id' | 'createdAt' | 'updatedAt'>>,
   ): Observable<Ticket> {
     const idx = mockTickets.findIndex((t) => t.id === id);
     if (idx === -1)

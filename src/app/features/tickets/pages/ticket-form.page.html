@@ -1,0 +1,210 @@
+<div class="form-page">
+  <button class="back-btn" type="button" (click)="cancel()">
+    &#8592; Volver a tickets
+  </button>
+
+  <div class="form-card">
+    <h1 class="form-title">
+      {{ isEditMode() ? 'Editar ticket' : 'Nuevo ticket' }}
+    </h1>
+
+    @if (loading()) {
+      <div class="loading-state" aria-live="polite" aria-busy="true">
+        <div class="skeleton skeleton--title"></div>
+        <div class="skeleton skeleton--field"></div>
+        <div class="skeleton skeleton--field"></div>
+        <div class="skeleton skeleton--field skeleton--short"></div>
+      </div>
+    }
+
+    @if (loadError()) {
+      <div class="alert alert--error" role="alert">
+        No se pudo cargar el ticket. Por favor, inténtalo de nuevo.
+      </div>
+    }
+
+    @if (!loading() && !loadError()) {
+      <form
+        [formGroup]="form"
+        (ngSubmit)="submit()"
+        novalidate
+        aria-label="Formulario de ticket"
+      >
+        <!-- Title -->
+        <div class="form-field" [ngClass]="{ 'form-field--error': isInvalid('title') }">
+          <label class="form-label" for="title">Título <span aria-hidden="true">*</span></label>
+          <input
+            id="title"
+            class="form-input"
+            type="text"
+            formControlName="title"
+            placeholder="Describe el problema de forma breve"
+            aria-required="true"
+            [attr.aria-invalid]="isInvalid('title') || null"
+            aria-describedby="title-error"
+          />
+          @if (isInvalid('title')) {
+            <span id="title-error" class="form-error" role="alert">
+              @if (hasError('title', 'required')) { El título es obligatorio. }
+              @else if (hasError('title', 'minlength')) { Debe tener al menos 5 caracteres. }
+            </span>
+          }
+        </div>
+
+        <!-- Description -->
+        <div class="form-field" [ngClass]="{ 'form-field--error': isInvalid('description') }">
+          <label class="form-label" for="description">Descripción <span aria-hidden="true">*</span></label>
+          <textarea
+            id="description"
+            class="form-textarea"
+            formControlName="description"
+            placeholder="Explica el problema con el mayor detalle posible"
+            rows="5"
+            aria-required="true"
+            [attr.aria-invalid]="isInvalid('description') || null"
+            aria-describedby="description-error"
+          ></textarea>
+          @if (isInvalid('description')) {
+            <span id="description-error" class="form-error" role="alert">
+              @if (hasError('description', 'required')) { La descripción es obligatoria. }
+              @else if (hasError('description', 'minlength')) { Debe tener al menos 20 caracteres. }
+            </span>
+          }
+        </div>
+
+        <!-- Category & Priority row -->
+        <div class="form-row">
+          <div class="form-field" [ngClass]="{ 'form-field--error': isInvalid('category') }">
+            <label class="form-label" for="category">Categoría <span aria-hidden="true">*</span></label>
+            <select
+              id="category"
+              class="form-select"
+              formControlName="category"
+              aria-required="true"
+              [attr.aria-invalid]="isInvalid('category') || null"
+              aria-describedby="category-error"
+            >
+              <option value="" disabled>Selecciona una categoría</option>
+              @for (cat of categories; track cat.value) {
+                <option [value]="cat.value">{{ cat.label }}</option>
+              }
+            </select>
+            @if (isInvalid('category')) {
+              <span id="category-error" class="form-error" role="alert">
+                La categoría es obligatoria.
+              </span>
+            }
+          </div>
+
+          <div class="form-field" [ngClass]="{ 'form-field--error': isInvalid('priority') }">
+            <label class="form-label" for="priority">Prioridad <span aria-hidden="true">*</span></label>
+            <select
+              id="priority"
+              class="form-select"
+              formControlName="priority"
+              aria-required="true"
+              [attr.aria-invalid]="isInvalid('priority') || null"
+              aria-describedby="priority-error"
+            >
+              <option value="" disabled>Selecciona una prioridad</option>
+              @for (pri of priorities; track pri.value) {
+                <option [value]="pri.value">{{ pri.label }}</option>
+              }
+            </select>
+            @if (isInvalid('priority')) {
+              <span id="priority-error" class="form-error" role="alert">
+                La prioridad es obligatoria.
+              </span>
+            }
+          </div>
+        </div>
+
+        <!-- Assignee -->
+        <div class="form-field" [ngClass]="{ 'form-field--error': isInvalid('assignee') }">
+          <label class="form-label" for="assignee">Responsable <span aria-hidden="true">*</span></label>
+          <select
+            id="assignee"
+            class="form-select"
+            formControlName="assignee"
+            aria-required="true"
+            [attr.aria-invalid]="isInvalid('assignee') || null"
+            aria-describedby="assignee-error"
+          >
+            <option value="" disabled>Selecciona un responsable</option>
+            @for (person of assignees; track person) {
+              <option [value]="person">{{ person }}</option>
+            }
+          </select>
+          @if (isInvalid('assignee')) {
+            <span id="assignee-error" class="form-error" role="alert">
+              El responsable es obligatorio.
+            </span>
+          }
+        </div>
+
+        <!-- Status (edit mode only) -->
+        @if (isEditMode()) {
+          <div class="form-field" [ngClass]="{ 'form-field--error': isInvalid('status') }">
+            <label class="form-label" for="status">Estado <span aria-hidden="true">*</span></label>
+            <select
+              id="status"
+              class="form-select"
+              formControlName="status"
+              aria-required="true"
+              [attr.aria-invalid]="isInvalid('status') || null"
+              aria-describedby="status-error"
+            >
+              <option value="" disabled>Selecciona un estado</option>
+              @for (st of statuses; track st.value) {
+                <option [value]="st.value">{{ st.label }}</option>
+              }
+            </select>
+            @if (isInvalid('status')) {
+              <span id="status-error" class="form-error" role="alert">
+                El estado es obligatorio.
+              </span>
+            }
+          </div>
+        }
+
+        <!-- Feedback messages -->
+        @if (saveError()) {
+          <div class="alert alert--error" role="alert">
+            Ocurrió un error al guardar. Por favor, inténtalo de nuevo.
+          </div>
+        }
+
+        @if (saved()) {
+          <div class="alert alert--success" role="status" aria-live="polite">
+            &#10003; Ticket guardado correctamente. Redirigiendo...
+          </div>
+        }
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button
+            type="button"
+            class="btn btn--secondary"
+            (click)="cancel()"
+            [disabled]="saving()"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            class="btn btn--primary"
+            [disabled]="form.invalid || saving()"
+            [attr.aria-busy]="saving()"
+          >
+            @if (saving()) {
+              <span class="btn__spinner" aria-hidden="true"></span>
+              Guardando...
+            } @else {
+              {{ isEditMode() ? 'Guardar cambios' : 'Crear ticket' }}
+            }
+          </button>
+        </div>
+      </form>
+    }
+  </div>
+</div>
