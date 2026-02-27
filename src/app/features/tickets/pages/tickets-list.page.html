@@ -110,7 +110,9 @@
         <tr class="table__row">
           <td class="table__id">{{ ticket.id }}</td>
           <td class="table__title">
-            <a class="ticket-link" [routerLink]="['/tickets', ticket.id]">{{ ticket.title }}</a>
+            <a class="ticket-link" [routerLink]="['/tickets', ticket.id]"
+              >{{ ticket.title }}</a
+            >
           </td>
           <td>
             <span

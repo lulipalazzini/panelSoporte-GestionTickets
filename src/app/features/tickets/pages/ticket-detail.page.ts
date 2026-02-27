@@ -15,14 +15,7 @@ import {
 import { AsyncPipe, DatePipe, NgClass } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { combineLatest, Observable, Subject } from 'rxjs';
-import {
-  catchError,
-  finalize,
-  map,
-  of,
-  startWith,
-  switchMap,
-} from 'rxjs';
+import { catchError, finalize, map, of, startWith, switchMap } from 'rxjs';
 
 import { TicketService } from '../data-access/ticket.service';
 import {
@@ -172,4 +165,4 @@ export class TicketDetailPage {
     };
     return labels[priority];
   }
-}
+}

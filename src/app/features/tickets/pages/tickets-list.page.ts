@@ -21,7 +21,11 @@ import {
 } from 'rxjs';
 
 import { TicketService, GetTicketsResult } from '../data-access/ticket.service';
-import { TicketCategory, TicketPriority, TicketStatus } from '../../../shared/models';
+import {
+  TicketCategory,
+  TicketPriority,
+  TicketStatus,
+} from '../../../shared/models';
 
 type ViewState =
   | { status: 'loading' }
@@ -59,7 +63,9 @@ export class TicketsListPage {
     priority: new FormControl<TicketPriority | ''>('', { nonNullable: true }),
     category: new FormControl<TicketCategory | ''>('', { nonNullable: true }),
     assignee: new FormControl('', { nonNullable: true }),
-    sort: new FormControl<'updatedAt' | 'priority'>('updatedAt', { nonNullable: true }),
+    sort: new FormControl<'updatedAt' | 'priority'>('updatedAt', {
+      nonNullable: true,
+    }),
   });
 
   private readonly retry$ = new Subject<void>();
@@ -86,8 +92,12 @@ export class TicketsListPage {
           .getTickets({
             search: filters.search || undefined,
             status: (filters.status || undefined) as TicketStatus | undefined,
-            priority: (filters.priority || undefined) as TicketPriority | undefined,
-            category: (filters.category || undefined) as TicketCategory | undefined,
+            priority: (filters.priority || undefined) as
+              | TicketPriority
+              | undefined,
+            category: (filters.category || undefined) as
+              | TicketCategory
+              | undefined,
             assignee: filters.assignee || undefined,
             sort: filters.sort,
             page,
@@ -108,7 +118,10 @@ export class TicketsListPage {
   }
 
   pages(total: number): number[] {
-    return Array.from({ length: Math.ceil(total / this.pageSize) }, (_, i) => i + 1);
+    return Array.from(
+      { length: Math.ceil(total / this.pageSize) },
+      (_, i) => i + 1,
+    );
   }
 
   statusLabel(status: TicketStatus): string {

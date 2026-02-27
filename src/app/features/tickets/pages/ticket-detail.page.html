@@ -1,172 +1,162 @@
 <div class="detail-page">
-
   <button class="back-btn" type="button" (click)="goBack()">
     &#8592; Volver a tickets
   </button>
 
-  @if (ticketState$ | async; as state) {
-
-    @if (state.status === 'loading') {
-      <div class="ticket-card">
-        <div class="skeleton skeleton--title"></div>
-        <div class="skeleton skeleton--line"></div>
-        <div class="skeleton skeleton--line skeleton--short"></div>
-        <div class="skeleton skeleton--line"></div>
-      </div>
-    }
-
-    @if (state.status === 'error') {
-      <div class="state-error">
-        <p>No se pudo cargar el ticket.</p>
-        <button class="btn-retry" type="button" (click)="goBack()">Volver</button>
-      </div>
-    }
-
-    @if (state.status === 'success') {
-      <div class="ticket-card">
-
-        <div class="ticket-card__header">
-          <h1 class="ticket-title">{{ state.ticket.title }}</h1>
-          <span
-            class="badge"
-            [ngClass]="{
+  @if (ticketState$ | async; as state) { @if (state.status === 'loading') {
+  <div class="ticket-card">
+    <div class="skeleton skeleton--title"></div>
+    <div class="skeleton skeleton--line"></div>
+    <div class="skeleton skeleton--line skeleton--short"></div>
+    <div class="skeleton skeleton--line"></div>
+  </div>
+  } @if (state.status === 'error') {
+  <div class="state-error">
+    <p>No se pudo cargar el ticket.</p>
+    <button class="btn-retry" type="button" (click)="goBack()">Volver</button>
+  </div>
+  } @if (state.status === 'success') {
+  <div class="ticket-card">
+    <div class="ticket-card__header">
+      <h1 class="ticket-title">{{ state.ticket.title }}</h1>
+      <span
+        class="badge"
+        [ngClass]="{
               'badge--open':     state.ticket.status === 'OPEN',
               'badge--progress': state.ticket.status === 'IN_PROGRESS',
               'badge--done':     state.ticket.status === 'DONE'
             }"
-          >{{ statusLabel(state.ticket.status) }}</span>
-        </div>
+        >{{ statusLabel(state.ticket.status) }}</span
+      >
+    </div>
 
-        <p class="ticket-description">{{ state.ticket.description }}</p>
+    <p class="ticket-description">{{ state.ticket.description }}</p>
 
-        <div class="ticket-card__meta">
-          <div class="meta-item">
-            <span class="meta-label">Categoría</span>
-            <span class="meta-value">{{ state.ticket.category }}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Responsable</span>
-            <span class="meta-value">{{ state.ticket.assignee }}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Creado</span>
-            <span class="meta-value">{{ state.ticket.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-label">Actualizado</span>
-            <span class="meta-value">{{ state.ticket.updatedAt | date:'dd/MM/yyyy HH:mm' }}</span>
-          </div>
-        </div>
+    <div class="ticket-card__meta">
+      <div class="meta-item">
+        <span class="meta-label">Categoría</span>
+        <span class="meta-value">{{ state.ticket.category }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Responsable</span>
+        <span class="meta-value">{{ state.ticket.assignee }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Creado</span>
+        <span class="meta-value"
+          >{{ state.ticket.createdAt | date:'dd/MM/yyyy HH:mm' }}</span
+        >
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Actualizado</span>
+        <span class="meta-value"
+          >{{ state.ticket.updatedAt | date:'dd/MM/yyyy HH:mm' }}</span
+        >
+      </div>
+    </div>
 
-        <div class="edit-row">
-          <div class="field-group">
-            <label class="field-label" [for]="'status-' + state.ticket.id">Estado</label>
-            <select
-              [id]="'status-' + state.ticket.id"
-              class="field-select"
-              [value]="state.ticket.status"
-              [disabled]="saving()"
-              (change)="changeStatus(state.ticket.id, $any($event.target).value)"
-            >
-              <option value="OPEN">Abierto</option>
-              <option value="IN_PROGRESS">En progreso</option>
-              <option value="DONE">Resuelto</option>
-            </select>
-          </div>
-
-          <div class="field-group">
-            <label class="field-label" [for]="'priority-' + state.ticket.id">Prioridad</label>
-            <select
-              [id]="'priority-' + state.ticket.id"
-              class="field-select"
-              [value]="state.ticket.priority"
-              [disabled]="saving()"
-              (change)="changePriority(state.ticket.id, $any($event.target).value)"
-            >
-              <option value="LOW">Baja</option>
-              <option value="MEDIUM">Media</option>
-              <option value="HIGH">Alta</option>
-            </select>
-          </div>
-
-          @if (saving()) {
-            <span class="saving-hint">Guardando…</span>
-          }
-          @if (saveError()) {
-            <span class="save-error">Error al guardar</span>
-          }
-        </div>
-
+    <div class="edit-row">
+      <div class="field-group">
+        <label class="field-label" [for]="'status-' + state.ticket.id"
+          >Estado</label
+        >
+        <select
+          [id]="'status-' + state.ticket.id"
+          class="field-select"
+          [value]="state.ticket.status"
+          [disabled]="saving()"
+          (change)="changeStatus(state.ticket.id, $any($event.target).value)"
+        >
+          <option value="OPEN">Abierto</option>
+          <option value="IN_PROGRESS">En progreso</option>
+          <option value="DONE">Resuelto</option>
+        </select>
       </div>
 
-      <section class="comments-section">
-        <h2 class="comments-title">Comentarios</h2>
-
-        @if (commentsState$ | async; as cs) {
-
-          @if (cs.status === 'loading') {
-            <div class="comments-loading">
-              <div class="skeleton skeleton--line"></div>
-              <div class="skeleton skeleton--line skeleton--short"></div>
-              <div class="skeleton skeleton--line"></div>
-            </div>
-          }
-
-          @if (cs.status === 'error') {
-            <p class="comments-error">No se pudieron cargar los comentarios.</p>
-          }
-
-          @if (cs.status === 'success') {
-            @if (cs.comments.length === 0) {
-              <p class="comments-empty">Aún no hay comentarios.</p>
-            } @else {
-              <ul class="comment-list">
-                @for (comment of cs.comments; track comment.id) {
-                  <li class="comment-item">
-                    <div class="comment-item__dot"></div>
-                    <div class="comment-item__body">
-                      <div class="comment-item__meta">
-                        <strong class="comment-author">{{ comment.author }}</strong>
-                        <span class="comment-date">{{ comment.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
-                      </div>
-                      <p class="comment-message">{{ comment.message }}</p>
-                    </div>
-                  </li>
-                }
-              </ul>
-            }
-          }
-
-        }
-
-        <form
-          class="comment-form"
-          [formGroup]="commentForm"
-          (ngSubmit)="submitComment(state.ticket.id)"
+      <div class="field-group">
+        <label class="field-label" [for]="'priority-' + state.ticket.id"
+          >Prioridad</label
         >
-          <label class="field-label" for="comment-message">Nuevo comentario</label>
-          <textarea
-            id="comment-message"
-            class="comment-textarea"
-            formControlName="message"
-            rows="3"
-            placeholder="Escribe un comentario (mín. 5 caracteres)…"
-          ></textarea>
-          @if (commentForm.controls.message.invalid && commentForm.controls.message.touched) {
-            <span class="field-error">El comentario debe tener al menos 5 caracteres.</span>
-          }
-          <button
-            class="submit-btn"
-            type="submit"
-            [disabled]="submitting() || commentForm.invalid"
-          >
-            {{ submitting() ? 'Enviando…' : 'Enviar comentario' }}
-          </button>
-        </form>
+        <select
+          [id]="'priority-' + state.ticket.id"
+          class="field-select"
+          [value]="state.ticket.priority"
+          [disabled]="saving()"
+          (change)="changePriority(state.ticket.id, $any($event.target).value)"
+        >
+          <option value="LOW">Baja</option>
+          <option value="MEDIUM">Media</option>
+          <option value="HIGH">Alta</option>
+        </select>
+      </div>
 
-      </section>
-    }
+      @if (saving()) {
+      <span class="saving-hint">Guardando…</span>
+      } @if (saveError()) {
+      <span class="save-error">Error al guardar</span>
+      }
+    </div>
+  </div>
 
-  }
+  <section class="comments-section">
+    <h2 class="comments-title">Comentarios</h2>
 
+    @if (commentsState$ | async; as cs) { @if (cs.status === 'loading') {
+    <div class="comments-loading">
+      <div class="skeleton skeleton--line"></div>
+      <div class="skeleton skeleton--line skeleton--short"></div>
+      <div class="skeleton skeleton--line"></div>
+    </div>
+    } @if (cs.status === 'error') {
+    <p class="comments-error">No se pudieron cargar los comentarios.</p>
+    } @if (cs.status === 'success') { @if (cs.comments.length === 0) {
+    <p class="comments-empty">Aún no hay comentarios.</p>
+    } @else {
+    <ul class="comment-list">
+      @for (comment of cs.comments; track comment.id) {
+      <li class="comment-item">
+        <div class="comment-item__dot"></div>
+        <div class="comment-item__body">
+          <div class="comment-item__meta">
+            <strong class="comment-author">{{ comment.author }}</strong>
+            <span class="comment-date"
+              >{{ comment.createdAt | date:'dd/MM/yyyy HH:mm' }}</span
+            >
+          </div>
+          <p class="comment-message">{{ comment.message }}</p>
+        </div>
+      </li>
+      }
+    </ul>
+    } } }
+
+    <form
+      class="comment-form"
+      [formGroup]="commentForm"
+      (ngSubmit)="submitComment(state.ticket.id)"
+    >
+      <label class="field-label" for="comment-message">Nuevo comentario</label>
+      <textarea
+        id="comment-message"
+        class="comment-textarea"
+        formControlName="message"
+        rows="3"
+        placeholder="Escribe un comentario (mín. 5 caracteres)…"
+      ></textarea>
+      @if (commentForm.controls.message.invalid &&
+      commentForm.controls.message.touched) {
+      <span class="field-error"
+        >El comentario debe tener al menos 5 caracteres.</span
+      >
+      }
+      <button
+        class="submit-btn"
+        type="submit"
+        [disabled]="submitting() || commentForm.invalid"
+      >
+        {{ submitting() ? 'Enviando…' : 'Enviar comentario' }}
+      </button>
+    </form>
+  </section>
+  } }
 </div>
